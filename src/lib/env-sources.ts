@@ -1,4 +1,15 @@
 import type { SourceConfig } from './types';
+import { BUILTIN_SOURCES } from './builtin-sources';
+
+/** 内置源与部署者预置源合并；同一 API 地址优先使用部署者的配置。 */
+export function getDefaultSources(): SourceConfig[] {
+  const envSources = getEnvSources();
+  const envUrls = new Set(envSources.map((source) => source.url.replace(/\/+$/, '')));
+  return [
+    ...BUILTIN_SOURCES.filter((source) => !envUrls.has(source.url.replace(/\/+$/, ''))),
+    ...envSources,
+  ];
+}
 
 /**
  * 部署者通过 DEFAULT_SOURCES 环境变量预置的采集站。

@@ -16,6 +16,7 @@ vi.mock('./client-api', () => ({
 import { api } from './client-api';
 import { applyEnvPresets } from './subscription-sync';
 import { useAppStore } from './store';
+import { BUILTIN_SOURCES } from './builtin-sources';
 import type { AuthStatusResponse, SourceListPayload } from './types';
 
 /**
@@ -70,6 +71,30 @@ afterEach(() => {
 });
 
 describe('applyEnvPresets', () => {
+  it('内置源首次加载启用普通源，保留取消勾选与成人过滤设置', async () => {
+    useAppStore.setState({ yellowFilter: true });
+    const defaults = status({ defaultSources: BUILTIN_SOURCES });
+    await applyEnvPresets(defaults);
+    const ordinary = BUILTIN_SOURCES.filter((source) => !source.isAdult);
+    const adult = BUILTIN_SOURCES.filter((source) => source.isAdult);
+    expect(useAppStore.getState().envSources).toHaveLength(31);
+    expect(useAppStore.getState().selectedKeys).toEqual(ordinary.map((source) => source.key));
+
+    useAppStore.getState().toggleSourceSelected(ordinary[0].key);
+    await applyEnvPresets(defaults);
+    expect(useAppStore.getState().selectedKeys).not.toContain(ordinary[0].key);
+    expect(useAppStore.getState().selectedKeys).toHaveLength(22);
+
+    useAppStore.getState().toggleSourceSelected(adult[0].key);
+    expect(useAppStore.getState().selectedKeys).not.toContain(adult[0].key);
+    useAppStore.getState().updateSettings({ yellowFilter: false });
+    useAppStore.getState().toggleSourceSelected(adult[0].key);
+    expect(useAppStore.getState().selectedKeys).toContain(adult[0].key);
+    useAppStore.getState().updateSettings({ yellowFilter: true });
+    expect(useAppStore.getState().selectedKeys).not.toContain(adult[0].key);
+    expect(useAppStore.getState().selectedKeys).toHaveLength(22);
+  });
+
   it('写入预置点播源与直播源，并自动勾选/启用', async () => {
     await applyEnvPresets(
       status({

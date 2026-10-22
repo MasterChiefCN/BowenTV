@@ -193,16 +193,33 @@ describe('POST /api/search', () => {
     expect(await fresh.json()).toEqual({ list: [], failures: [] });
   });
 
-  it('未登录返回 401，未配置密码返回 503', async () => {
-    vi.stubGlobal('fetch', vi.fn());
+  it.each([false, true])('未配置密码时无 Cookie 也可搜索（流式=%s）', async (stream) => {
     const saved = process.env.PASSWORD;
     delete process.env.PASSWORD;
     try {
-      const noPassword = await POST(makeRequest({ wd: 'x', sources: SOURCES }));
-      expect(noPassword.status).toBe(503);
+      mockUpstream();
+      const req = new Request(`https://local.test/api/search${stream ? '?stream=1' : ''}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wd: '测试剧',
+          sources: [{ ...SOURCES[0], url: `${SOURCES[0].url}/public-${stream}` }],
+          filterAdult: true,
+        }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const result = stream
+        ? JSON.parse((await res.text()).trim().split('\n').at(-1)!)
+        : await res.json();
+      expect(result.list.map((item: { vodId: string }) => item.vodId)).toEqual(['1', '2']);
     } finally {
       process.env.PASSWORD = saved;
     }
+  });
+
+  it('配置密码后未登录返回 401', async () => {
+    vi.stubGlobal('fetch', vi.fn());
     const noCookie = new Request('https://local.test/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -245,7 +245,7 @@ export function useQualityProbe(sources?: SourceConfig[]) {
           // 主动中止（新批接管 / 组件卸载）不是探测结论，保持「未知」
           if (err instanceof DOMException && err.name === 'AbortError') return;
           // 未登录：登录框已弹出，把每个源都标成失败只会误导
-          if (err instanceof ApiError && (err.status === 401 || err.status === 503)) return;
+          if (err instanceof ApiError && err.status === 401) return;
           // 传输层失败（网关拦截 / 容器重启 / 断网）：逐条落成失败结论，徽章上能看出原因。
           // 原先这里静默吞掉，界面只剩一片「未测到」，线上无从判断是哪一环挂了。
           const message = err instanceof Error && err.message ? err.message : '探测请求失败';

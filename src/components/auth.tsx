@@ -10,16 +10,14 @@ import { useToast } from './toast';
 /**
  * 认证上下文：
  * - 页面加载时查询 /api/status 判断会话有效性；
- * - 任何 API 返回 401/503 时全局打开登录框（客户端 API 层统一触发，不再散落检查）。
+ * - 未配置密码时直接获得访问权限；API 返回 401 时全局打开登录框。
  */
-
-type SetupRequired = boolean;
 
 interface AuthContextValue {
   checked: boolean;
   verified: boolean;
-  /** 服务器未设置 PASSWORD，需要管理员配置 */
-  setupRequired: SetupRequired;
+  /** 是否启用了密码验证 */
+  passwordRequired: boolean;
   /** /api/status 返回的应用版本（构建时从 package.json 注入） */
   version: string | null;
   openLogin: () => void;
@@ -29,7 +27,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   checked: false,
   verified: false,
-  setupRequired: false,
+  passwordRequired: true,
   version: null,
   openLogin: () => {},
   logout: async () => {},
@@ -42,7 +40,7 @@ export function useAuth(): AuthContextValue {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(false);
   const [verified, setVerified] = useState(false);
-  const [setupRequired, setSetupRequired] = useState(false);
+  const [passwordRequired, setPasswordRequired] = useState(true);
   const [version, setVersion] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
@@ -56,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((s) => {
         if (cancelled) return;
         setVerified(s.verified);
-        setSetupRequired(!s.passwordRequired);
+        setPasswordRequired(s.passwordRequired);
         setVersion(s.version);
         setChecked(true);
       })
@@ -70,29 +68,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(
     () =>
-      onUnauthorized((event) => {
-        const setup = (event as CustomEvent).detail === 'setup';
-        setSetupRequired(setup);
+      onUnauthorized(() => {
+        setPasswordRequired(true);
         setVerified(false);
         setModalOpen(true);
       }),
     []
   );
 
-  const openLogin = useCallback(() => setModalOpen(true), []);
+  const openLogin = useCallback(() => {
+    if (passwordRequired) setModalOpen(true);
+  }, [passwordRequired]);
 
   const logout = useCallback(async () => {
+    if (!passwordRequired) return;
     try {
       await api.logout();
     } finally {
       setVerified(false);
       toast('已退出登录', 'info');
     }
-  }, [toast]);
+  }, [passwordRequired, toast]);
 
   const handleLoginSuccess = useCallback(async () => {
     setVerified(true);
-    setSetupRequired(false);
     setModalOpen(false);
     // 登录前以 401 失败的查询（如豆瓣推荐）需要重新拉取
     queryClient.invalidateQueries();
@@ -115,11 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [toast, queryClient]);
 
   return (
-    <AuthContext.Provider value={{ checked, verified, setupRequired, version, openLogin, logout }}>
+    <AuthContext.Provider value={{ checked, verified, passwordRequired, version, openLogin, logout }}>
       {children}
-      {modalOpen && (
+      {modalOpen && passwordRequired && (
         <LoginModal
-          setupRequired={setupRequired}
           onSuccess={handleLoginSuccess}
           onClose={() => setModalOpen(false)}
         />
@@ -129,11 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 function LoginModal({
-  setupRequired,
   onSuccess,
   onClose,
 }: {
-  setupRequired: boolean;
   onSuccess: () => void;
   onClose: () => void;
 }) {
@@ -182,42 +178,30 @@ function LoginModal({
         className="bg-surface-raised rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl"
         role="dialog"
         aria-modal="true"
-        aria-label={setupRequired ? '需要配置密码' : '访问验证'}
+        aria-label="访问验证"
       >
-        {setupRequired ? (
-          <>
-            <h2 className="text-lg font-semibold text-content mb-3">需要配置密码</h2>
-            <p className="text-sm text-muted leading-relaxed">
-              为确保安全，必须设置 <code className="text-accent">PASSWORD</code> 环境变量才能使用本服务。
-              请联系管理员在部署配置中添加该变量后重启服务。
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 className="text-lg font-semibold text-content mb-1">访问验证</h2>
-            <p className="text-sm text-muted mb-4">请输入密码继续访问</p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submit();
-              }}
-            >
-              <input
-                ref={inputRef}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input w-full"
-                placeholder="密码"
-                autoComplete="current-password"
-              />
-              {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-              <button type="submit" className="btn-primary w-full mt-4" disabled={loading || !password.trim()}>
-                {loading ? '验证中...' : '进入'}
-              </button>
-            </form>
-          </>
-        )}
+        <h2 className="text-lg font-semibold text-content mb-1">访问验证</h2>
+        <p className="text-sm text-muted mb-4">请输入密码继续访问</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input w-full"
+            placeholder="密码"
+            autoComplete="current-password"
+          />
+          {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+          <button type="submit" className="btn-primary w-full mt-4" disabled={loading || !password.trim()}>
+            {loading ? '验证中...' : '进入'}
+          </button>
+        </form>
       </div>
     </div>
   );

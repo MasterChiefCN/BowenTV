@@ -30,7 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
         // 测活缓存从 IndexedDB 恢复（并顺带搬迁旧 localStorage 快照里的存量），
         // 与下方 /api/status 拉取互不依赖，失败静默
         void hydrateLiveProbeResults();
-        // 拉取部署者通过 DEFAULT_SOURCES / DEFAULT_LIVE_SOURCES 预置的源（失败时静默忽略）
+        // 拉取内置点播源及部署者预置的点播/直播源（失败时静默忽略）
         // 与 AuthProvider 共用同一 query key，/api/status 全站只发一次
         return queryClient.fetchQuery({ queryKey: STATUS_QUERY_KEY, queryFn: () => api.status() });
       })

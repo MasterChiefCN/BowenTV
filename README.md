@@ -1,8 +1,12 @@
-# LibreTV
+# BowenTV
 
-LibreTV Next.js 迁移版：免费在线视频聚合搜索与观看平台。基于 Next.js 15（App Router）+ TypeScript + Tailwind CSS，播放内核为 ArtPlayer + hls.js，支持亮暗双主题。
+BowenTV：基于 [LibreTV v2.19.7](https://github.com/LibreSpark/LibreTV/releases/tag/v2.19.7) 定制的免费在线视频聚合搜索与观看平台。基于 Next.js 15（App Router）+ TypeScript + Tailwind CSS，播放内核为 ArtPlayer + hls.js，支持亮暗双主题。
 
-> 🏠 **官网**：[LibreTV 官网](https://libretv.is-an.org/)
+使用自定义品牌图片作为网站 Logo、浏览器图标、PWA 图标及播放器待机图。以下官网、完整文档与发布镜像来自上游 LibreTV；运行此定制版请使用本仓库源码构建（`docker compose up -d --build`）。配置与订阅格式保持上游兼容。
+
+已内置用户提供清单中的 31 个启用点播源（23 个普通源、8 个成人源），不包含 3 个注释停用源。普通源首次加载自动勾选；成人源保留 18+ 标记，需关闭「成人内容过滤」后勾选使用。内置源使用稳定标识，用户取消勾选后不会在刷新时被重新勾选。
+
+> 🏠 **上游官网**：[LibreTV 官网](https://libretv.is-an.org/)
 >
 > 🌐 **演示站**：[tv.bagiinlink.eu.org](https://tv.bagiinlink.eu.org)（访问密码：`libretv`）
 >
@@ -30,13 +34,10 @@ LibreTV Next.js 迁移版：免费在线视频聚合搜索与观看平台。基�
 ### Docker（推荐）
 
 ```bash
-# 在 .env 中设置 PASSWORD
-echo "PASSWORD=your-password" > .env
+# 默认无需密码；需要密码验证时，可在 .env 中设置 PASSWORD
+# echo "PASSWORD=your-password" > .env
 
-# 方式一：拉取发布镜像（零构建）
-docker compose pull && docker compose up -d
-
-# 方式二：源码构建
+# 构建并运行 BowenTV 定制版
 docker compose up -d --build
 ```
 
@@ -44,14 +45,15 @@ docker compose up -d --build
 
 ```yaml
 services:
-  libretv:
-    image: ghcr.io/librespark/libretv:latest
-    container_name: libretv
+  bowentv:
+    build: .
+    image: bowentv:local
+    container_name: bowentv
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      - PASSWORD=change-me   # 必填：访问密码，务必修改
+      - PASSWORD=            # 可选：留空无需密码，设置后启用密码验证
       # - PROXY_SECRET=your-secret          # 会话/代理签名密钥，多实例部署建议设置
       # - DEFAULT_SOURCES=[{"name":"示例源","url":"https://example.com/api.php/provide/vod"}]
       # - DEFAULT_LIVE_SOURCES=[{"name":"示例直播源","url":"https://example.com/list.m3u"}]
@@ -63,10 +65,10 @@ services:
 > 其余可选变量见下方[环境变量](#环境变量)表；仓库内的 `docker-compose.yml` 含完整注释版本（含 `build: .` 源码构建分支）。
 
 ```bash
-docker compose pull && docker compose up -d
+docker compose up -d --build
 ```
 
-> ⚠️ **生产部署必须通过 HTTPS 访问**（localhost 除外）：生产模式下会话 cookie 带 `Secure` 标记，浏览器只在 HTTPS（或 localhost）下保存它。因此用 `http://服务器IP:端口` 访问时，会出现"密码正确却无法登录"的现象——登录请求实际成功，但 cookie 被浏览器丢弃。请通过反向代理（Nginx / Caddy / Traefik）或 Cloudflare 等为站点套上 TLS 后再对外提供服务；本地开发用 `localhost` 不受影响。
+> 默认无需密码。需要限制访问时，设置 `PASSWORD` 并重启服务即可启用密码验证。
 
 镜像发布在 GHCR 与 Docker Hub：`ghcr.io/librespark/libretv` 与 `docker.io/bestzwei/libretv`
 （`latest` / `主.次` / 完整版本号三个 tag，`linux/amd64` 与 `linux/arm64` 双架构，
@@ -79,17 +81,17 @@ docker compose pull && docker compose up -d
 
 ```bash
 npm install
-PASSWORD=your-password npm run build
-PASSWORD=your-password npm start   # 监听 8080
+npm run build
+npm start   # 监听 8080，默认无需密码
 ```
 
 ### 环境变量
 
 | 变量 | 必填 | 说明 |
 | --- | --- | --- |
-| `PASSWORD` | 是 | 访问密码；未设置时站点会提示管理员配置 |
+| `PASSWORD` | 否 | 访问密码；未设置或留空时可直接访问和使用，设置后启用密码验证 |
 | `PROXY_SECRET` | 否 | 会话/代理签名密钥；不设置时从 PASSWORD 派生（多实例部署建议显式设置） |
-| `DEFAULT_SOURCES` | 否 | 预置采集站（JSON 数组），用户端自动出现且默认勾选，详见[配置文档](https://libretv.is-an.org/wiki/Configuration.html) |
+| `DEFAULT_SOURCES` | 否 | 在内置点播源基础上追加采集站（JSON 数组）；相同 API 地址优先使用此配置。普通源首次出现时自动勾选，成人源遵循过滤设置，详见[配置文档](https://libretv.is-an.org/wiki/Configuration.html) |
 | `REQUEST_TIMEOUT` | 否 | 代理上游请求超时（毫秒），默认 8000 |
 | `MAX_RETRIES` | 否 | 代理请求重试次数，默认 1 |
 | `SEARCH_MAX_PAGES` | 否 | 每个搜索源最多抓取的页数（1-50，默认 5）。第一页会读取源站 `pagecount`，实际页数 = min(源站总页数，该值)；页间并行请求，单页失败只丢该页 |
@@ -198,7 +200,7 @@ PASSWORD=your-password npm start   # 监听 8080
 
 ```bash
 npm install
-PASSWORD=dev-password npm run dev   # http://localhost:8080
+npm run dev   # http://localhost:8080，默认无需密码
 npm test                            # 核心库单元测试（cms-parser / m3u8 / ssrf）
 npm run typecheck
 ```
@@ -218,10 +220,11 @@ CI 校验通过后自动构建并推送 `ghcr.io/librespark/libretv:<版本>`（
 
 ## 安全说明
 
-- 密码只保存在服务端环境变量中，前端不持有任何可重放凭证。
-- 登录接口有 IP 速率限制（10 次 / 10 分钟）。
+- 访问密码为可选项；未配置或留空时所有功能无需登录，配置后启用会话验证。
+- 配置密码时，密码只保存在服务端环境变量中，前端不持有任何可重放凭证。
+- 启用密码验证后，登录接口有 IP 速率限制（10 次 / 10 分钟）。
 - 代理内置 SSRF 防护：拒绝内网/保留地址（含 DNS 解析后校验），仅放行 http(s)。
-- 未登录会话仅允许代理图片类目标（豆瓣封面防盗链需要）。
+- 启用密码验证后，未登录会话仅允许代理图片类目标（豆瓣封面防盗链需要）。
 
 ## 衍生作品
 

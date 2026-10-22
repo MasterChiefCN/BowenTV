@@ -127,10 +127,10 @@ export interface BangumiCalendarResponse {
 export interface AuthStatusResponse {
   /** 服务器是否配置了 PASSWORD */
   passwordRequired: boolean;
-  /** 当前会话是否已验证 */
+  /** 当前是否允许访问（未配置密码时为 true） */
   verified: boolean;
   version: string;
-  /** 部署者通过 DEFAULT_SOURCES 环境变量预置的采集站（未配置时为空数组） */
+  /** 内置点播源与部署者通过 DEFAULT_SOURCES 环境变量追加的采集站 */
   defaultSources: SourceConfig[];
   /** 部署者通过 DEFAULT_LIVE_SOURCES 环境变量预置的直播源（未配置时为空数组） */
   defaultLiveSources: LiveSourceConfig[];

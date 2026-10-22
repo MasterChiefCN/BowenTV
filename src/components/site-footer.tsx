@@ -98,11 +98,9 @@ export function SiteFooter() {
           rel="noopener noreferrer"
           className="group relative inline-block cursor-help hover:text-accent"
         >
-          LibreTV{version ? ` v${version}` : ''}
+          BowenTV{version ? ` v${version}` : ''}
           {version && <UpdateTip update={upstreamUpdate} />}
         </a>
-        {' · '}
-        AGPL-3.0 License
       </p>
     </footer>
   );

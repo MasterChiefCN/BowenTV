@@ -76,6 +76,11 @@ export function sessionFromCookieHeader(cookieHeader: string | null): boolean {
   return false;
 }
 
+/** 未配置访问密码时直接放行；配置后必须有有效会话。 */
+export function isAccessAllowed(cookieHeader: string | null): boolean {
+  return !isPasswordConfigured() || sessionFromCookieHeader(cookieHeader);
+}
+
 // —— 登录速率限制（内存实现，单实例部署足够；多实例可换 Redis） ——
 
 const attemptMap = new Map<string, { count: number; resetAt: number }>();
