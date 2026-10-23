@@ -67,7 +67,7 @@ function useUpstreamUpdate(current: string | null): UpstreamUpdate | null {
   return state;
 }
 
-/** 页脚仓库链接上的悬停提示：显示更新检测结果 */
+/** 页脚品牌链接上的悬停提示：显示更新检测结果 */
 function UpdateTip({ update }: { update: UpstreamUpdate | null }) {
   const tip =
     update === null
@@ -85,7 +85,7 @@ function UpdateTip({ update }: { update: UpstreamUpdate | null }) {
   );
 }
 
-/** 全站统一页脚：仓库链接 + 版本号（悬停显示上游更新检测结果） */
+/** 全站统一页脚：品牌链接 + 版本号（悬停显示上游更新检测结果） */
 export function SiteFooter() {
   const { version } = useAuth();
   const upstreamUpdate = useUpstreamUpdate(version);
@@ -93,7 +93,7 @@ export function SiteFooter() {
     <footer className="border-t border-line py-4">
       <p className="text-center text-xs text-faint">
         <a
-          href="https://github.com/LibreSpark/LibreTV"
+          href="https://bowen.games"
           target="_blank"
           rel="noopener noreferrer"
           className="group relative inline-block cursor-help hover:text-accent"
