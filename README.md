@@ -77,6 +77,22 @@ docker compose up -d --build
 
 > 版本号以 `package.json` 为单一来源，部署后可用 `/api/status` 返回的 `version` 字段核对。详见[部署文档](https://libretv.is-an.org/wiki/Deployment.html)。
 
+### 免 Docker 运行（预构建包）
+
+本仓库的 `release-standalone` 工作流可生成 `bowentv-<版本>-standalone.tar.gz` 与对应的 `SHA256SUMS`。推送版本 tag 后会附到 [Releases](https://github.com/MasterChiefCN/BowenTV/releases)，也可在 Actions 页面手动运行；不填写 tag 时仅生成构建产物。下载后解压并用 Node 启动（以下以 v2.20.2 为例）：
+
+```bash
+sha256sum -c SHA256SUMS
+mkdir -p bowentv
+tar -xzf bowentv-2.20.2-standalone.tar.gz -C bowentv
+cd bowentv
+PORT=8080 node server.js
+```
+
+包内是 Next.js standalone 产物（`server.js` + `public` + 静态资源 + 运行时依赖），**与 CPU 架构无关**，x86_64 / arm64 / armv7 都能跑，适合用不了 Docker 的设备（如 ARMv7 路由器）。环境变量与 Docker 部署一致（`PASSWORD`、`PORT` 等），需要 Node 18+；包内不含 `sharp`（本项目不开图片优化，封面走代理原图）。
+
+默认无需密码；需要限制访问时，在启动命令前加上 `PASSWORD=your-password`。
+
 ### 手动运行
 
 ```bash
