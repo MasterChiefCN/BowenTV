@@ -1,6 +1,6 @@
 # BowenTV
 
-BowenTV：基于 [LibreTV v2.21.1](https://github.com/LibreSpark/LibreTV/tree/v2.21.1) 定制的免费在线视频聚合搜索与观看平台。基于 Next.js 15（App Router）+ TypeScript + Tailwind CSS，播放内核为 ArtPlayer + hls.js，支持亮暗双主题。
+BowenTV：基于 [LibreTV v2.22.0](https://github.com/LibreSpark/LibreTV/tree/v2.22.0) 定制的免费在线视频聚合搜索与观看平台。基于 Next.js 15（App Router）+ TypeScript + Tailwind CSS，播放内核为 ArtPlayer + hls.js，支持亮暗双主题。
 
 使用自定义品牌图片作为网站 Logo、浏览器图标、PWA 图标及播放器待机图。以下官网、完整文档与发布镜像来自上游 LibreTV；运行此定制版请使用本仓库源码构建（`docker compose up -d --build`）。配置与订阅格式保持上游兼容。
 
